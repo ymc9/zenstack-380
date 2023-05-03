@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id String @id @unique @default(uuid()) @db.Uuid
+  projects Project[]
+}
+
+model Project {
+  id String @id @unique @default(uuid()) @db.Uuid
+  documents Document[]
+  ownerID String @db.Uuid
+  owner User @relation(fields: [ownerID], references: [id])
+  // ...
+  @@allow('all', owner == auth())
+}
+
+
+model Document {
+  id String @id @default(uuid()) @db.Uuid
+  projectID String @db.Uuid
+  project Project @relation(fields: [projectID], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  isPublic Boolean @default(false)
+  diagramDocuments DiagramDocument[]
+  // ...
+  @@allow('read', isPublic)
+  @@allow('all', project.owner == auth())
+}
+
+
+model DiagramDocument {
+  id String @id @default(uuid()) @db.Uuid
+  documentID String @db.Uuid
+  document Document @relation(fields: [documentID], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@allow('read', document.isPublic)
+  @@allow('all', document.project.owner == auth())
+}
